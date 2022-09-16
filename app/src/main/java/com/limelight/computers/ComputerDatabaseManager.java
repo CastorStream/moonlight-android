@@ -77,6 +77,7 @@ public class ComputerDatabaseManager {
         addresses.append(details.localAddress != null ? details.localAddress : "");
         addresses.append(ADDRESS_DELIMITER).append(details.remoteAddress != null ? details.remoteAddress : "");
         addresses.append(ADDRESS_DELIMITER).append(details.manualAddress != null ? details.manualAddress : "");
+        addresses.append(ADDRESS_DELIMITER).append(details.portShift != 0 ? details.portShift : "");
         addresses.append(ADDRESS_DELIMITER).append(details.ipv6Address != null ? details.ipv6Address : "");
 
         values.put(ADDRESSES_COLUMN_NAME, addresses.toString());
@@ -114,7 +115,11 @@ public class ComputerDatabaseManager {
         details.localAddress = readNonEmptyString(addresses[0]);
         details.remoteAddress = readNonEmptyString(addresses[1]);
         details.manualAddress = readNonEmptyString(addresses[2]);
-        details.ipv6Address = readNonEmptyString(addresses[3]);
+        try {
+            details.portShift = Integer.parseInt(readNonEmptyString(addresses[3]));
+        } catch (Exception ex) {
+        }
+        details.ipv6Address = readNonEmptyString(addresses[4]);
 
         details.macAddress = c.getString(3);
 

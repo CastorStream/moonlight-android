@@ -180,7 +180,7 @@ public class NvHTTP {
                 .build();
     }
     
-    public NvHTTP(String address, String uniqueId, X509Certificate serverCert, LimelightCryptoProvider cryptoProvider) throws IOException {
+    public NvHTTP(String address, int portShift, String uniqueId, X509Certificate serverCert, LimelightCryptoProvider cryptoProvider) throws IOException {
         // Use the same UID for all Moonlight clients so we can quit games
         // started by other Moonlight clients.
         this.uniqueId = "0123456789ABCDEF";
@@ -193,13 +193,13 @@ public class NvHTTP {
             this.baseUrlHttp = new HttpUrl.Builder()
                     .scheme("http")
                     .host(address)
-                    .port(HTTP_PORT)
+                    .port(HTTP_PORT + (portShift * 50))
                     .build();
 
             this.baseUrlHttps = new HttpUrl.Builder()
                     .scheme("https")
                     .host(address)
-                    .port(HTTPS_PORT)
+                    .port(HTTPS_PORT + (portShift * 50))
                     .build();
         } catch (IllegalArgumentException e) {
             // Encapsulate IllegalArgumentException into IOException for callers to handle more easily

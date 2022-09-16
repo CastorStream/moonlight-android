@@ -100,6 +100,16 @@ public class AddComputerManually extends Activity {
         boolean wrongSiteLocal = false;
         boolean success;
         int portTestResult;
+        int portShift = 0;
+
+        if (host.contains(":")) {
+            try {
+                portShift = Integer.parseInt(host.substring(host.lastIndexOf(':') + 1).trim());
+            } catch (Exception e) {
+                // Don't port shift
+            }
+            host = host.split(":")[0].trim();
+        }
 
         SpinnerDialog dialog = SpinnerDialog.displayDialog(this, getResources().getString(R.string.title_add_pc),
             getResources().getString(R.string.msg_add_pc), false);
@@ -107,6 +117,7 @@ public class AddComputerManually extends Activity {
         try {
             ComputerDetails details = new ComputerDetails();
             details.manualAddress = host;
+            details.portShift = portShift;
             success = managerBinder.addComputerBlocking(details);
         } catch (InterruptedException e) {
             // Propagate the InterruptedException to the caller for proper handling

@@ -30,6 +30,7 @@ import com.limelight.nvstream.jni.MoonBridge;
 public class NvConnection {
     // Context parameters
     private String host;
+    private int portShift;
     private LimelightCryptoProvider cryptoProvider;
     private String uniqueId;
     private ConnectionContext context;
@@ -43,9 +44,10 @@ public class NvConnection {
     private short relMouseX, relMouseY, relMouseWidth, relMouseHeight;
     private short absMouseX, absMouseY, absMouseWidth, absMouseHeight;
 
-    public NvConnection(String host, String uniqueId, StreamConfiguration config, LimelightCryptoProvider cryptoProvider, X509Certificate serverCert, boolean batchMouseInput)
+    public NvConnection(String host, int portShift, String uniqueId, StreamConfiguration config, LimelightCryptoProvider cryptoProvider, X509Certificate serverCert, boolean batchMouseInput)
     {       
         this.host = host;
+        this.portShift = portShift;
         this.cryptoProvider = cryptoProvider;
         this.uniqueId = uniqueId;
         this.batchMouseInput = batchMouseInput;
@@ -119,7 +121,7 @@ public class NvConnection {
     
     private boolean startApp() throws XmlPullParserException, IOException
     {
-        NvHTTP h = new NvHTTP(context.serverAddress, uniqueId, context.serverCert, cryptoProvider);
+        NvHTTP h = new NvHTTP(context.serverAddress, context.portShift, uniqueId, context.serverCert, cryptoProvider);
 
         String serverInfo = h.getServerInfo();
         
@@ -270,6 +272,7 @@ public class NvConnection {
                 String appName = context.streamConfig.getApp().getAppName();
 
                 context.serverAddress = host;
+                context.portShift = portShift;
                 context.connListener.stageStarting(appName);
 
                 try {

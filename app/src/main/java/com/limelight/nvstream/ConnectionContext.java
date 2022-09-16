@@ -6,6 +6,7 @@ import javax.crypto.SecretKey;
 
 public class ConnectionContext {
     public String serverAddress;
+    public int portShift;
     public X509Certificate serverCert;
     public StreamConfiguration streamConfig;
     public NvConnectionListener connListener;

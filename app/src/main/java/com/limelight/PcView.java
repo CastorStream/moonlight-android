@@ -404,6 +404,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     stopComputerUpdates(true);
 
                     httpConn = new NvHTTP(ServerHelper.getCurrentAddressFromComputer(computer),
+                            computer.portShift,
                             managerBinder.getUniqueId(),
                             computer.serverCert,
                             PlatformBinding.getCryptoProvider(PcView.this));
@@ -533,6 +534,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 String message;
                 try {
                     httpConn = new NvHTTP(ServerHelper.getCurrentAddressFromComputer(computer),
+                            computer.portShift,
                             managerBinder.getUniqueId(),
                             computer.serverCert,
                             PlatformBinding.getCryptoProvider(PcView.this));

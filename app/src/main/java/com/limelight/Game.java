@@ -169,6 +169,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     };
 
     public static final String EXTRA_HOST = "Host";
+    public static final String EXTRA_PORTSHIFT = "PortShift";
     public static final String EXTRA_APP_NAME = "AppName";
     public static final String EXTRA_APP_ID = "AppId";
     public static final String EXTRA_UNIQUEID = "UniqueId";
@@ -303,6 +304,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         pcName = Game.this.getIntent().getStringExtra(EXTRA_PC_NAME);
 
         String host = Game.this.getIntent().getStringExtra(EXTRA_HOST);
+        int portShift = Game.this.getIntent().getIntExtra(EXTRA_PORTSHIFT, 0);
         int appId = Game.this.getIntent().getIntExtra(EXTRA_APP_ID, StreamConfiguration.INVALID_APP_ID);
         String uniqueId = Game.this.getIntent().getStringExtra(EXTRA_UNIQUEID);
         String uuid = Game.this.getIntent().getStringExtra(EXTRA_PC_UUID);
@@ -469,7 +471,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 .build();
 
         // Initialize the connection
-        conn = new NvConnection(host, uniqueId, config, PlatformBinding.getCryptoProvider(this), serverCert, needsInputBatching);
+        conn = new NvConnection(host, portShift, uniqueId, config, PlatformBinding.getCryptoProvider(this), serverCert, needsInputBatching);
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
         keyboardTranslator = new KeyboardTranslator();
 

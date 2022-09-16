@@ -392,11 +392,23 @@ public class ComputerManagerService extends Service {
         return new MdnsDiscoveryListener() {
             @Override
             public void notifyComputerAdded(MdnsComputer computer) {
+                // Create a computer details object
                 ComputerDetails details = new ComputerDetails();
+
+                // Set the port-shift
+                try {
+                    String name = computer.getName();
+                    details.portShift = Integer.parseInt(name.substring(name.indexOf('(') + 1, name.indexOf(')')));
+                } catch (Exception ex) {
+                    details.portShift = 0;
+                }
 
                 // Populate the computer template with mDNS info
                 if (computer.getLocalAddress() != null) {
                     details.localAddress = computer.getLocalAddress().getHostAddress();
+                    if (details.portShift > 0) {
+                        details.manualAddress = details.localAddress;
+                    }
 
                     // Since we're on the same network, we can use STUN to find
                     // our WAN address, which is also very likely the WAN address
@@ -543,9 +555,9 @@ public class ComputerManagerService extends Service {
         }
     }
 
-    private ComputerDetails tryPollIp(ComputerDetails details, String address) {
+    private ComputerDetails tryPollIp(ComputerDetails details, String address, int portShift) {
         try {
-            NvHTTP http = new NvHTTP(address, idManager.getUniqueId(), details.serverCert,
+            NvHTTP http = new NvHTTP(address, portShift, idManager.getUniqueId(), details.serverCert,
                     PlatformBinding.getCryptoProvider(ComputerManagerService.this));
 
             ComputerDetails newDetails = http.getComputerDetails();
@@ -573,14 +585,16 @@ public class ComputerManagerService extends Service {
 
     private static class ParallelPollTuple {
         public String address;
+        public int portShift;
         public ComputerDetails existingDetails;
 
         public boolean complete;
         public Thread pollingThread;
         public ComputerDetails returnedDetails;
 
-        public ParallelPollTuple(String address, ComputerDetails existingDetails) {
+        public ParallelPollTuple(String address, int portShift, ComputerDetails existingDetails) {
             this.address = address;
+            this.portShift = portShift;
             this.existingDetails = existingDetails;
         }
 
@@ -603,7 +617,7 @@ public class ComputerManagerService extends Service {
         tuple.pollingThread = new Thread() {
             @Override
             public void run() {
-                ComputerDetails details = tryPollIp(tuple.existingDetails, tuple.address);
+                ComputerDetails details = tryPollIp(tuple.existingDetails, tuple.address, tuple.portShift);
 
                 synchronized (tuple) {
                     tuple.complete = true; // Done
@@ -618,10 +632,13 @@ public class ComputerManagerService extends Service {
     }
 
     private ComputerDetails parallelPollPc(ComputerDetails details) throws InterruptedException {
-        ParallelPollTuple localInfo = new ParallelPollTuple(details.localAddress, details);
-        ParallelPollTuple manualInfo = new ParallelPollTuple(details.manualAddress, details);
-        ParallelPollTuple remoteInfo = new ParallelPollTuple(details.remoteAddress, details);
-        ParallelPollTuple ipv6Info = new ParallelPollTuple(details.ipv6Address, details);
+        if (details.localAddress != null && details.localAddress.startsWith("172.31.1.")) {
+            details.localAddress = details.activeAddress;
+        }
+        ParallelPollTuple localInfo = new ParallelPollTuple(details.localAddress, details.portShift, details);
+        ParallelPollTuple manualInfo = new ParallelPollTuple(details.manualAddress, details.portShift, details);
+        ParallelPollTuple remoteInfo = new ParallelPollTuple(details.remoteAddress, details.portShift, details);
+        ParallelPollTuple ipv6Info = new ParallelPollTuple(details.ipv6Address, details.portShift, details);
 
         // These must be started in order of precedence for the deduplication algorithm
         // to result in the correct behavior.
@@ -640,6 +657,9 @@ public class ComputerManagerService extends Service {
 
                 if (localInfo.returnedDetails != null) {
                     localInfo.returnedDetails.activeAddress = localInfo.address;
+                    if (localInfo.returnedDetails.localAddress != null && localInfo.returnedDetails.localAddress.startsWith("172.31.1.")) {
+                        localInfo.returnedDetails.localAddress = localInfo.returnedDetails.activeAddress;
+                    }
                     return localInfo.returnedDetails;
                 }
             }
@@ -652,6 +672,9 @@ public class ComputerManagerService extends Service {
 
                 if (manualInfo.returnedDetails != null) {
                     manualInfo.returnedDetails.activeAddress = manualInfo.address;
+                    if (manualInfo.returnedDetails.localAddress != null && manualInfo.returnedDetails.localAddress.startsWith("172.31.1.")) {
+                        manualInfo.returnedDetails.localAddress = manualInfo.returnedDetails.activeAddress;
+                    }
                     return manualInfo.returnedDetails;
                 }
             }
@@ -664,6 +687,9 @@ public class ComputerManagerService extends Service {
 
                 if (remoteInfo.returnedDetails != null) {
                     remoteInfo.returnedDetails.activeAddress = remoteInfo.address;
+                    if (remoteInfo.returnedDetails.localAddress != null && remoteInfo.returnedDetails.localAddress.startsWith("172.31.1.")) {
+                        remoteInfo.returnedDetails.localAddress = remoteInfo.returnedDetails.activeAddress;
+                    }
                     return remoteInfo.returnedDetails;
                 }
             }
@@ -676,6 +702,9 @@ public class ComputerManagerService extends Service {
 
                 if (ipv6Info.returnedDetails != null) {
                     ipv6Info.returnedDetails.activeAddress = ipv6Info.address;
+                    if (ipv6Info.returnedDetails.localAddress != null && ipv6Info.returnedDetails.localAddress.startsWith("172.31.1.")) {
+                        ipv6Info.returnedDetails.localAddress = ipv6Info.returnedDetails.activeAddress;
+                    }
                     return ipv6Info.returnedDetails;
                 }
             }
@@ -821,7 +850,7 @@ public class ComputerManagerService extends Service {
                         PollingTuple tuple = getPollingTuple(computer);
 
                         try {
-                            NvHTTP http = new NvHTTP(ServerHelper.getCurrentAddressFromComputer(computer), idManager.getUniqueId(),
+                            NvHTTP http = new NvHTTP(ServerHelper.getCurrentAddressFromComputer(computer), computer.portShift, idManager.getUniqueId(),
                                     computer.serverCert, PlatformBinding.getCryptoProvider(ComputerManagerService.this));
 
                             String appList;
